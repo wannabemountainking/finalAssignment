@@ -25,7 +25,7 @@ headers = {
       'Accept-Language': 'en-US,en;q=0.5',
 }
 
-def get_berlin_job_skill_db(url, area):
+def get_berlin_job_skill_db(url, skill):
 	response = requests.get(f"{url}/engineering/", headers=headers)
 	soup = BeautifulSoup(response.text, 'html.parser')
 	berlin_job_db = []
@@ -38,8 +38,10 @@ def get_berlin_job_skill_db(url, area):
 
 	for i in range(1, number_of_pages):
 		if i != 1:
-			new_response = requests.get(f"{url}/{area}/page/{i}", headers=headers)
+			new_response = requests.get(f"{url}/engineering/page/{i}", headers=headers)
 			soup = BeautifulSoup(new_response.text, "html.parser")
+		else:
+			new_response = requests.get(f"{url}/skill_areas/{skill}")
 		jobs = soup.find_all("li", class_="bjs-jlid")
 		for job in jobs:
 			raw_link = job.find("a")
@@ -57,4 +59,36 @@ def get_berlin_job_skill_db(url, area):
 		pprint(berlin_job_db)
 	return berlin_job_db
 
-pprint(len(get_berlin_job_skill_db(URL, "engineering")))
+def get_web3_career_job_skill_db(url, skill):
+	web3_career_url = f"{url}/{skill}-jobs"
+	page_number = 0
+	web3_career_jobs_db = []
+	while True:
+		page_number += 1
+		response = requests.get(f"{web3_career_url}?page={page_number}")
+		if not response:
+			break
+		else:
+			soup = BeautifulSoup(response.text, "html.parser")
+			jobs = soup.find_all("tr", class_="table_row")
+			for job in jobs:
+				link = f"{url}{job.find("a")["href"]}"
+				print(link)
+				title = job.find("h2", class_="my-primary").text
+				print(title)
+				company = job.find("h3").text
+				print(company)
+				job_description =""
+				for skill_needed in job.find_all("span", class_="my-badge"):
+					job_description += f" {skill_needed.text}"
+				print(job_description)
+				job_data = dict(
+					link = link,
+					job_title = title,
+					job_description=job_description,
+					company=company
+				)
+				web3_career_jobs_db.append(job_data)
+	return web3_career_jobs_db
+
+get_web3_career_job_skill_db(url="https://web3.career", skill="flutter")
