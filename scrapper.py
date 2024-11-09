@@ -10,6 +10,9 @@ https://weworkremotely.com/remote-jobs/search?utf8=%E2%9C%93&term= where <s> is 
 """
 
 import re
+from itertools import filterfalse
+from operator import truediv
+
 import requests
 from bs4 import BeautifulSoup
 from pprint import pprint
@@ -63,32 +66,36 @@ def get_web3_career_job_skill_db(url, skill):
 	web3_career_url = f"{url}/{skill}-jobs"
 	page_number = 0
 	web3_career_jobs_db = []
-	while True:
+	have_more_pages = True
+	while have_more_pages:
 		page_number += 1
 		response = requests.get(f"{web3_career_url}?page={page_number}")
-		if not response:
-			break
+		soup = BeautifulSoup(response.text, "html.parser")
+		pagination = soup.find("ul", class_="pagination")
+		if not pagination:
+			have_more_pages = False
 		else:
-			soup = BeautifulSoup(response.text, "html.parser")
-			jobs = soup.find_all("tr", class_="table_row")
+			jobs = soup.find_all("tr", class_=" table_row")
+			print(jobs)
 			for job in jobs:
-				link = f"{url}{job.find("a")["href"]}"
+				raw_link = job.find("a")
+				link = f"{url}{raw_link["href"]}"
 				print(link)
-				title = job.find("h2", class_="my-primary").text
+				title = raw_link.text
 				print(title)
 				company = job.find("h3").text
 				print(company)
-				job_description =""
+				job_description = ""
 				for skill_needed in job.find_all("span", class_="my-badge"):
-					job_description += f" {skill_needed.text}"
+					job_description += f"{skill_needed.text} "
 				print(job_description)
 				job_data = dict(
-					link = link,
-					job_title = title,
+					link=link,
+					job_title=title,
 					job_description=job_description,
 					company=company
 				)
 				web3_career_jobs_db.append(job_data)
 	return web3_career_jobs_db
 
-get_web3_career_job_skill_db(url="https://web3.career", skill="flutter")
+pprint(get_web3_career_job_skill_db(url="https://web3.career", skill="flutter"))
